@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Sparkles, Trash2 } from 'lucide-react'
+import { ArrowLeft, Sparkles, Trash2, Archive } from 'lucide-react'
 import { useRosterStore } from '@/store/rosterStore'
 import { Stage, STAGES, STAGE_LABELS } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 
 const STAGE_COLORS: Record<Stage, string> = {
-  matched: 'text-blue-300',
-  talking: 'text-yellow-300',
-  irl: 'text-orange-300',
-  dating: 'text-green-300',
-  archived: 'text-white/30',
+  matched: 'border-accent-blue text-accent-blue bg-accent-blue/10',
+  talking: 'border-accent-amber text-accent-amber bg-accent-amber/10',
+  irl: 'border-orange-400 text-orange-400 bg-orange-400/10',
+  dating: 'border-accent-green text-accent-green bg-accent-green/10',
+  archived: 'border-bg-border text-text-muted bg-white/5',
 }
 
 export default function ProfilePage() {
@@ -31,30 +31,19 @@ export default function ProfilePage() {
 
   if (!contact) {
     return (
-      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center text-white/30">
-        Contact not found.{' '}
-        <button onClick={() => navigate('/')} className="ml-2 underline text-white/50">
-          Go back
-        </button>
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-center gap-3 text-text-muted">
+        <p>Contact not found.</p>
+        <button onClick={() => navigate('/')} className="text-sm text-text-secondary underline">Go back</button>
       </div>
     )
   }
 
-  const handleStageChange = (stage: Stage) => {
-    updateContact(contact.id, { stage })
-  }
-
   const handleNotesBlur = () => {
-    if (notes !== contact.notes) {
-      updateContact(contact.id, { notes })
-    }
+    if (notes !== contact.notes) updateContact(contact.id, { notes })
   }
 
   const handleDelete = async () => {
-    if (!confirmDelete) {
-      setConfirmDelete(true)
-      return
-    }
+    if (!confirmDelete) { setConfirmDelete(true); return }
     deleteContact(contact.id)
     navigate('/')
   }
@@ -63,19 +52,12 @@ export default function ProfilePage() {
     setLoadingSummary(true)
     setSummaryError(null)
     setSummary(null)
-
     const { data, error } = await supabase.functions.invoke('grok-supervisor', {
       body: {
         action: 'summarize_contact',
-        contact: {
-          name: contact.name,
-          stage: contact.stage,
-          source_app: contact.source_app,
-          notes: contact.notes,
-        },
+        contact: { name: contact.name, stage: contact.stage, source_app: contact.source_app, notes: contact.notes },
       },
     })
-
     if (error || !data?.summary) {
       setSummaryError('Could not generate summary. Make sure the Grok Edge Function is deployed.')
     } else {
@@ -85,45 +67,42 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
-      {/* Top bar */}
-      <header className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-[#0f0f0f]/90 backdrop-blur border-b border-white/5">
-        <button onClick={() => navigate('/')} className="text-white/50 hover:text-white transition-colors">
+    <div className="min-h-screen bg-bg">
+      <header className="sticky top-0 z-10 flex items-center gap-3 px-4 py-3 bg-bg/90 backdrop-blur border-b border-bg-border">
+        <button onClick={() => navigate('/')} className="text-text-muted hover:text-text-primary transition-colors">
           <ArrowLeft size={20} />
         </button>
-        <span className="font-semibold">{contact.name}</span>
+        <span className="font-semibold text-text-primary">{contact.name}</span>
       </header>
 
-      <div className="max-w-lg mx-auto p-5 flex flex-col gap-6">
+      <div className="max-w-lg mx-auto p-5 flex flex-col gap-6 pb-16">
         {/* Hero */}
         <div className="flex flex-col items-center gap-3 pt-4">
-          <div className="w-24 h-24 rounded-full overflow-hidden bg-white/10">
+          <div className="w-24 h-24 rounded-full overflow-hidden bg-bg-elevated border border-bg-border">
             {contact.photo_url ? (
               <img src={contact.photo_url} alt={contact.name} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-3xl font-semibold text-white/30">
+              <div className="w-full h-full flex items-center justify-center text-3xl font-semibold text-text-muted">
                 {contact.name.charAt(0).toUpperCase()}
               </div>
             )}
           </div>
-          <h1 className="text-xl font-semibold">{contact.name}</h1>
+          <h1 className="text-xl font-semibold text-text-primary">{contact.name}</h1>
           {contact.source_app && (
-            <span className="text-sm text-white/40">via {contact.source_app}</span>
+            <span className="text-sm text-text-muted">via {contact.source_app}</span>
           )}
         </div>
 
         {/* Stage */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs text-white/40 font-medium uppercase tracking-wider">Stage</label>
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Stage</label>
           <div className="flex flex-wrap gap-2">
             {STAGES.map((s) => (
               <button
                 key={s}
-                onClick={() => handleStageChange(s)}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  contact.stage === s
-                    ? `border-current ${STAGE_COLORS[s]} bg-white/5`
-                    : 'border-white/10 text-white/30 hover:border-white/20'
+                onClick={() => updateContact(contact.id, { stage: s })}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                  contact.stage === s ? STAGE_COLORS[s] : 'border-bg-border text-text-muted hover:border-white/20'
                 }`}
               >
                 {STAGE_LABELS[s]}
@@ -134,57 +113,57 @@ export default function ProfilePage() {
 
         {/* Notes */}
         <div className="flex flex-col gap-2">
-          <label className="text-xs text-white/40 font-medium uppercase tracking-wider">Notes</label>
+          <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Notes</label>
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             onBlur={handleNotesBlur}
             placeholder="Add notes about this person..."
             rows={4}
-            className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 transition-colors resize-none"
+            className="bg-bg-card border border-bg-border rounded-xl px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-white/20 transition-colors resize-none"
           />
         </div>
 
         {/* AI Summary */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <label className="text-xs text-white/40 font-medium uppercase tracking-wider">
-              Relationship Summary
+            <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">
+              AI Relationship Summary
             </label>
             <button
               onClick={handleGenerateSummary}
               disabled={loadingSummary}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-brand/10 hover:bg-brand/20 border border-brand/20 text-brand rounded-lg transition-colors disabled:opacity-50"
             >
-              <Sparkles size={12} />
+              <Sparkles size={11} />
               {loadingSummary ? 'Generating...' : 'Generate'}
             </button>
           </div>
-
-          <div className="min-h-[80px] bg-white/[0.03] border border-white/5 rounded-xl px-4 py-3">
+          <div className="min-h-[80px] bg-bg-card border border-bg-border rounded-xl px-4 py-3">
             {loadingSummary ? (
-              <p className="text-sm text-white/30 animate-pulse">Asking Grok...</p>
+              <p className="text-sm text-text-muted animate-pulse">Asking Grok...</p>
             ) : summaryError ? (
-              <p className="text-sm text-red-400/70">{summaryError}</p>
+              <p className="text-sm text-red-400/80">{summaryError}</p>
             ) : summary ? (
-              <p className="text-sm text-white/80 leading-relaxed">{summary}</p>
+              <p className="text-sm text-text-secondary leading-relaxed">{summary}</p>
             ) : (
-              <p className="text-sm text-white/20">Hit Generate to get an AI summary of this relationship.</p>
+              <p className="text-sm text-text-muted">Hit Generate to get an AI summary of this relationship.</p>
             )}
           </div>
         </div>
 
-        {/* Danger zone */}
-        <div className="border-t border-white/5 pt-4 flex flex-col gap-2">
+        {/* Actions */}
+        <div className="border-t border-bg-border pt-4 flex flex-col gap-2">
           <button
             onClick={() => { updateContact(contact.id, { stage: 'archived' }); navigate('/') }}
-            className="w-full py-2.5 text-sm text-white/40 hover:text-white/60 border border-white/10 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-text-muted hover:text-text-secondary border border-bg-border rounded-xl transition-colors"
           >
+            <Archive size={14} />
             Archive Contact
           </button>
           <button
             onClick={handleDelete}
-            className="w-full py-2.5 text-sm flex items-center justify-center gap-2 text-red-400/70 hover:text-red-400 border border-red-400/10 hover:border-red-400/30 rounded-lg transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-red-400/70 hover:text-red-400 border border-red-400/10 hover:border-red-400/30 rounded-xl transition-colors"
           >
             <Trash2 size={14} />
             {confirmDelete ? 'Tap again to confirm delete' : 'Delete Contact'}

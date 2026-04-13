@@ -3,12 +3,17 @@
 @tailwind utilities;
 
 @layer base {
-  * {
-    box-sizing: border-box;
-  }
+  * { box-sizing: border-box; }
 
   body {
-    @apply bg-[#0f0f0f] text-white antialiased;
-    font-family: system-ui, -apple-system, sans-serif;
+    @apply bg-bg text-text-primary antialiased font-body;
   }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { @apply bg-bg-border rounded-full; }
+
+  /* Select / option dark */
+  select option { background-color: #161616; }
 }
